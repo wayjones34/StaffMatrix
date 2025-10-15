@@ -15,6 +15,7 @@ using System.Windows.Shapes;
 using System.IO;
 using Newtonsoft.Json;
 using StaffMatrix.Models;
+using StaffMatrix.Data;
 
 namespace StaffMatrix
 {
@@ -41,15 +42,7 @@ namespace StaffMatrix
         {
             try
             {
-                if (File.Exists(shiftFilePath))
-                {
-                    string json = File.ReadAllText(shiftFilePath);
-                    _shifts = JsonConvert.DeserializeObject<List<Shift>>(json) ?? new List<Shift>();
-                }
-                else
-                {
-                    _shifts = new List<Shift>();
-                }
+                _shifts = JsonDataHelper.LoadShifts();
             }
             catch (Exception ex)
             {
@@ -62,15 +55,7 @@ namespace StaffMatrix
         {
             try
             {
-                if (File.Exists(employeeFilePath))
-                {
-                    string json = File.ReadAllText(employeeFilePath);
-                    _employees = JsonConvert.DeserializeObject<List<Employee>>(json) ?? new List<Employee>();
-                }
-                else
-                {
-                    _employees = new List<Employee>();
-                }
+                _employees = JsonDataHelper.LoadEmployees();
             }
             catch (Exception ex)
             {
@@ -94,10 +79,10 @@ namespace StaffMatrix
                 {
                     foreach (var shift in shiftsForDate)
                     {
-                        // Try to find the employee name
-                        var employee = _employees.FirstOrDefault(emp => emp.FirstName + " " + emp.LastName == GetEmployeeName(shift.EmployeeID));
+                        // Find the employee by EmployeeID
+                        var employee = _employees.FirstOrDefault(emp => emp.EmployeeID == shift.EmployeeID);
 
-                        string employeeName = employee != null ? $"{employee.FirstName} {employee.LastName}" : $"Employee ID: {shift.EmployeeID}";
+                        string employeeName = employee?.FullName ?? $"Employee ID: {shift.EmployeeID}";
 
                         string shiftInfo = $"{employeeName} - {shift.StartTime:hh\\:mm} to {shift.EndTime:hh\\:mm}";
                         if (!string.IsNullOrEmpty(shift.Location))
@@ -115,11 +100,6 @@ namespace StaffMatrix
             }
         }
 
-        private string GetEmployeeName(int employeeId)
-        {
-            // For now, since we don't have a proper employee ID system,
-            // we'll just return a placeholder
-            return $"Employee {employeeId}";
-        }
+
     }
 }

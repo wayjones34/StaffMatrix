@@ -99,5 +99,28 @@ namespace StaffMatrix.Data
                 Console.WriteLine("Error saving shifts: " + ex.Message);
             }
         }
+
+        // ✅ Generate Unique Shift ID
+        /// <summary>
+        /// Generates a unique Shift ID by loading existing shifts and finding the next available ID.
+        /// This method ensures uniqueness even when called from different parts of the application.
+        /// </summary>
+        /// <returns>A unique Shift ID</returns>
+        public static int GenerateUniqueShiftID()
+        {
+            var shifts = LoadShifts();
+
+            if (shifts.Count == 0)
+                return 1;
+
+            int maxId = 0;
+            foreach (var shift in shifts)
+            {
+                if (shift.ShiftID > maxId)
+                    maxId = shift.ShiftID;
+            }
+
+            return maxId + 1;
+        }
     }
 }
