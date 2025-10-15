@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Newtonsoft.Json;
 using StaffMatrix.Models;
+using StaffMatrix.Data;
 
 namespace StaffMatrix
 {
@@ -31,15 +32,11 @@ namespace StaffMatrix
         {
             try
             {
-                if (File.Exists(employeeFilePath))
+                var employeeList = JsonDataHelper.LoadEmployees();
+                employees.Clear();
+                foreach (var emp in employeeList)
                 {
-                    string json = File.ReadAllText(employeeFilePath);
-                    var employeeList = JsonConvert.DeserializeObject<List<Employee>>(json) ?? new List<Employee>();
-                    employees.Clear();
-                    foreach (var emp in employeeList)
-                    {
-                        employees.Add(emp);
-                    }
+                    employees.Add(emp);
                 }
             }
             catch (Exception ex)
@@ -52,18 +49,14 @@ namespace StaffMatrix
         {
             try
             {
-                if (File.Exists(shiftFilePath))
+                var shiftList = JsonDataHelper.LoadShifts();
+                Shifts.Clear();
+                foreach (var shift in shiftList)
                 {
-                    string json = File.ReadAllText(shiftFilePath);
-                    var shiftList = JsonConvert.DeserializeObject<List<Shift>>(json) ?? new List<Shift>();
-                    Shifts.Clear();
-                    foreach (var shift in shiftList)
-                    {
-                        // Populate EmployeeName for display
-                        var employee = employees.FirstOrDefault(e => e.EmployeeID == shift.EmployeeID);
-                        shift.EmployeeName = employee?.FullName ?? $"Employee ID: {shift.EmployeeID}";
-                        Shifts.Add(shift);
-                    }
+                    // Populate EmployeeName for display
+                    var employee = employees.FirstOrDefault(e => e.EmployeeID == shift.EmployeeID);
+                    shift.EmployeeName = employee?.FullName ?? $"Employee ID: {shift.EmployeeID}";
+                    Shifts.Add(shift);
                 }
             }
             catch (Exception ex)
@@ -89,7 +82,7 @@ namespace StaffMatrix
 
                 var shift = new Shift
                 {
-                    ShiftID = Shifts.Count + 1, // Simple ID generation
+                    ShiftID = JsonDataHelper.GenerateUniqueShiftID(),
                     EmployeeID = selectedEmployee.EmployeeID,
                     ShiftDate = shiftDate.SelectedDate.Value,
                     StartTime = TimeSpan.Parse(txtStartTime.Text.Trim()),
@@ -135,9 +128,7 @@ namespace StaffMatrix
         {
             try
             {
-                var json = JsonConvert.SerializeObject(Shifts, Formatting.Indented);
-                Directory.CreateDirectory("Data");
-                File.WriteAllText(shiftFilePath, json);
+                JsonDataHelper.SaveShifts(Shifts.ToList());
                 MessageBox.Show("Shifts saved successfully!", "Saved", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -150,25 +141,62 @@ namespace StaffMatrix
         {
             try
             {
-                if (File.Exists(shiftFilePath))
+                var loadedShifts = JsonDataHelper.LoadShifts();
+                Shifts.Clear();
+                foreach (var shift in loadedShifts)
                 {
-                    var json = File.ReadAllText(shiftFilePath);
-                    var loadedShifts = JsonConvert.DeserializeObject<ObservableCollection<Shift>>(json);
-
-                    Shifts.Clear();
-                    foreach (var shift in loadedShifts)
-                        Shifts.Add(shift);
-
-                    MessageBox.Show("Shifts loaded successfully!", "Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // Populate EmployeeName for display
+                    var employee = employees.FirstOrDefault(e => e.EmployeeID == shift.EmployeeID);
+                    shift.EmployeeName = employee?.FullName ?? $"Employee ID: {shift.EmployeeID}";
+                    Shifts.Add(shift);
                 }
-                else
-                {
-                    MessageBox.Show("No saved shifts found.", "Load", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
+
+                MessageBox.Show("Shifts loaded successfully!", "Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error loading shifts: " + ex.Message);
+            }
+        }
+
+        private void EditShift_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedShift = shiftGrid.SelectedItem as Shift;
+            if (selectedShift == null)
+            {
+                MessageBox.Show("Please select a shift to edit.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Populate form with selected shift data
+            var employee = employees.FirstOrDefault(emp => emp.EmployeeID == selectedShift.EmployeeID);
+            cmbEmployee.SelectedItem = employee;
+            shiftDate.SelectedDate = selectedShift.ShiftDate;
+            txtStartTime.Text = selectedShift.StartTime.ToString(@"hh\:mm");
+            txtEndTime.Text = selectedShift.EndTime.ToString(@"hh\:mm");
+            txtLocation.Text = selectedShift.Location;
+
+            // Remove the old shift from the collection
+            Shifts.Remove(selectedShift);
+        }
+
+        private void RemoveShift_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedShift = shiftGrid.SelectedItem as Shift;
+            if (selectedShift == null)
+            {
+                MessageBox.Show("Please select a shift to remove.", "No Selection", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var result = MessageBox.Show($"Are you sure you want to remove the shift for {selectedShift.EmployeeName} on {selectedShift.ShiftDate:MM/dd/yyyy}?",
+                                       "Confirm Removal", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                Shifts.Remove(selectedShift);
+                JsonDataHelper.SaveShifts(Shifts.ToList());
+                MessageBox.Show("Shift removed successfully!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
     }
