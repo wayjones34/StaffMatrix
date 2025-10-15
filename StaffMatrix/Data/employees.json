@@ -1,0 +1,18 @@
+[
+  {
+    "EmployeeID": 1,
+    "FirstName": "John",
+    "LastName": "Doe",
+    "Role": "Admin",
+    "Email": "john.doe@email.com",
+    "Phone": "555-1234"
+  },
+  {
+    "EmployeeID": 2,
+    "FirstName": "Alice",
+    "LastName": "Smith",
+    "Role": "Scheduler",
+    "Email": "alice.smith@email.com",
+    "Phone": "555-5678"
+  }
+]
